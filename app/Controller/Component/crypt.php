@@ -14,12 +14,11 @@
  * Explanation behind block size, IV size used are mentioned @ bottom of this class as a refernece behind thought process.
  * 
  */
-class MathComponent extends Object {
+class CryptComponent extends Component {
 
 	var $controller;
 
     /* Attribute Value Container */
-    protected $_attr                = array();
     private   $_passkey             = null;
 
     /* Defaults to AES 128 bit encryption in CFB mode (uses an IV) */
@@ -40,114 +39,78 @@ class MathComponent extends Object {
      * @param   array       Optional attributes passed as an array.
      * @return  Component Object
      */
-    public function __construct(array $attr = array())
+    public function __construct(ComponentCollection $collection, $settings = array())
     {
+		parent::__construct($collection, $settings);
         if (!function_exists('mcrypt_encrypt')) {
             throw new Exception(
                 'php-mcrypt library not installed. This library is required for server side encryption capabilities.'
             );
         }
-
-        $this->_attr = $attr;
     }
+ 
 
-
-    /**
-     * Scans available attribute names and tries to return the correct
-     * numerical constant value.
-     *
-     * @param   mixed       Search
-     * @return  integer
-     */
-    protected function _lookupAttribute($attr)
-    {
-        if (preg_match('/^[0-9]+$/', $attr)) {
-            $attr = (int)$attr;
-        } else {
-            $textLabels = $this->_getTextLabels();
-            foreach ($textLabels as $index => $label) {
-                $labels = array($label);
-                $func = create_function('$c', 'return strtoupper($c[1]);');
-                $camelCase = preg_replace_callback('/_([a-z])/', $func, $label);
-                $labels[] = $camelCase;
-
-                if (in_array($attr, $labels)) {
-                    $attr = $index;
-                    break;
-                }
-            }
-        }
-
-        return $attr;
-    }
-
-	//called before Controller::beforeFilter()
+ 	//called before Controller::beforeFilter()
 	function initialize(&$controller, $settings = array())
 	{
-		// saving the controller reference for later use
+		// saving the controller reference for later use just in case needed
 		$this->controller =& $controller;
 	}
 
 
     /**
-     * Sets the value for an attribute such as credit card number
-     * or name. For a list of attributes, see the header of this
-     * file.
+     * Sets the key to use in which to encrypt the secure data
+     * attributes such as the credit card number and expiration
+     * date. The key should be 32 bytes in length -- if it's too
+     * short a hashing algorithm will be used to extend it. If
+     * it's too long it will be truncated.
      *
-     * @param   integer     Attribute (see class comments)
-     * @param   mixed       Value
-     * @param   boolean     Is the value from data storage? Would
-     *                      it need to be decrypted if it's a
-     *                      secure attribute?
-     * @return  CryptComponent (object)
-     * @throws  Exception
+     * A minimum length of 16 bytes is required.
+     *
+     * @param   string      Pass key
+     * @return  Component Object
      */
-    public function set($attr, $value, $fromStorage = false)
+    public function setPassKey($key = '')
     {
-        $attr = $this->_lookupAttribute($attr);
-
-        switch ($attr) {
-            // Special combined value of the card number and expiration date
-            case self::SECURE_STORE:
-                // This value is always encrypted, so we ignore $fromStorage
-                $plain = $this->_decrypt($value);
-                if ($plain && preg_match('/^([0-9]{2})([0-9]{4})(.*)/', $plain, $matches)) {
-                    list(
-                        $ignore,
-                        $this->_attr[self::EXPIRE_MONTH],
-                        $this->_attr[self::EXPIRE_YEAR],
-                        $this->_attr[self::NUMBER]
-                    ) = $matches;
-                } else {
-                    throw new CreditCardFreezer_Exception(
-                        'Secure store value does not decrypt to the expected '
-                        . 'values. Perhaps the passkey has been changed? This can '
-                        . 'happen if you do not set a passkey and move the source '
-                        . 'file.'
-                    );
-                }
-                break;
-
-            case self::NUMBER:
-            case self::EXPIRE_MONTH:
-            case self::EXPIRE_YEAR:
-            case self::CCV:
-                if ($fromStorage) {
-                    $this->_attr[$attr] = $this->_decrypt($value);
-                } else {
-                    $this->_attr[$attr] = preg_replace('/[^0-9]/', '', $value);
-                }
-                break;
-
-            default:
-                $this->_attr[$attr] = $value;
-                break;
+        $len = strlen($key);
+        // Best to set your own passkey :)
+        if ($len <= 0) {
+            $key = md5(__FILE__);
         }
+
+        if ($len > self::KEY_LENGTH) {
+            $key = substr($key, 0, self::KEY_LENGTH);
+        } elseif ($len < self::KEY_LENGTH) {
+            while (strlen($key) < self::KEY_LENGTH) {
+                $key .= md5($key);
+            }
+            $key = substr($key, 0, self::KEY_LENGTH);
+        }
+
+        $this->_passkey = $key;
 
         return $this;
     }
 
+	
+    /**
+     * Retrieves the 32-byte passkey which is used to encrypt
+     * the secured attributes such as card number and the credit
+     * card expiration date.
+     *
+     * @return      string
+     */
+    public function getPassKey()
+    {
+        if ($this->_passkey) {
+            return $this->_passkey;
+        } else {
+            $this->setPassKey();
+            return $this->_passkey;
+        }
+    }
 
+	
     /**
      * Generate a random 8-byte IV.
      * @return  integer
@@ -171,7 +134,7 @@ class MathComponent extends Object {
     {
         $len = strlen($value);
         if ($len > self::ENCRYPT_CHUNK_BYTES) {
-            throw new CreditCardFreezer_Exception('Value to encrypt is too '
+            throw new Exception('Value to encrypt is too '
                 . 'long. Should not exceed ' . self::ENCRYPT_CHUNK_BYTES . ' characters.'
             );
         } elseif ($len < self::ENCRYPT_CHUNK_BYTES) {
@@ -197,6 +160,52 @@ class MathComponent extends Object {
         );
     }
 
+	
+    /**
+     * Decrypts an encrypted value by breaking apart its
+     * iv/encrypted text contents and passing them to
+     * the appropriate mcrypt cipher.
+     *
+     * @param   string      iv/encrypted text pair
+     * @return  string      Decrypted text value
+     */
+    private function _decrypt($value)
+    {
+        if (!strpos($value, '|')) {
+            return false;
+        }
+
+        list($iv, $data)    = explode('|', $value);
+        $iv                 = base64_decode($iv);
+        $data               = base64_decode($data);
+
+        $b64 = mcrypt_decrypt(
+            self::CIPHER,
+            $this->getPassKey(),
+            $data,
+            self::CIPHER_MODE,
+            $iv
+        );
+
+        // We stored it base64 encoded to remove any numerical
+        // patterns.
+        $plain = base64_decode($b64);
+
+        return rtrim($plain);
+    }
+
+	// decrypt made publicly accessible
+	public function decrypt($value)
+	{
+		return $this->_decrypt($value);
+	}
+
+
+	// encrypt made publicly accessible
+	public function encrypt($value)
+	{
+		return $this->_encrypt($value);
+	}
 
 }
 
