@@ -59,7 +59,20 @@
  */
 class DATABASE_CONFIG {
 
+	// default application database .. sitting in RDS remotely
 	public $default = array(
+		'datasource' => 'Database/Mysql',
+		'persistent' => false,
+		'host' => 'localhost',
+		'login' => 'root',
+		'password' => 'root123',
+		'database' => 'cc_app',
+		'prefix' => '',
+		//'encoding' => 'utf8',
+	);
+
+	// key db - used for key management of security purpose of data
+	public $key_db = array(
 		'datasource' => 'Database/Mysql',
 		'persistent' => false,
 		'host' => 'localhost',
@@ -69,6 +82,7 @@ class DATABASE_CONFIG {
 		'prefix' => '',
 		//'encoding' => 'utf8',
 	);
+
 
 	public $test = array(
 		'datasource' => 'Database/Mysql',

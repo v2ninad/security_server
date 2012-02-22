@@ -1,10 +1,23 @@
 <?php
 class SecuritiesController extends AppController {
     public $name = 'Security';
-    //public $helpers = array('Html', 'Form');
+	//var $components = array('Crypt');
+
 
 	function index() {
-	
-		
+
+		// check if Security.use_salt is set to true - whether to use salt key or not
+
+		// check if Security.use_baseencode is set to true, if yes decode the values.
+
+		// get the table namepassed from source
+
+		// check which model in our code base need to be used i.e. Inflector::camelize($table_name)
+
+		// find out table for keys i.e. Inflector::singularize("credit_cards")."_keys";
+
+		// find out Model for key table i.e. Inflector::camelize($key_table)
+
+		// 
 	}
 }
