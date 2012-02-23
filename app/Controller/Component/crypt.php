@@ -207,6 +207,28 @@ class CryptComponent extends Component {
 		return $this->_encrypt($value);
 	}
 
+    /**
+     *
+	 * Generates random key. This can be used to set pass key
+	 *
+     * @param   integer     legnth of key default is key legnth property of class
+     * @return  string      random generated key of given legnth
+     */
+	public function keygen($length=self::KEY_LENGTH)
+	{
+		$key = '';
+		list($usec, $sec) = explode(' ', microtime());
+		mt_srand((float) $sec + ((float) $usec * 100000));
+
+		$inputs = array_merge(range('z','a'),range(0,9),range('A','Z'));
+
+		for($i=0; $i<$length; $i++)
+		{
+			$key .= $inputs{mt_rand(0,61)};
+		}
+		return $key;
+	}
+
 }
 
 
