@@ -42,22 +42,45 @@
 //				),
 //		);
 
+//$data = Array
+//(
+//    'request' => Array
+//        (
+//            'm' => 'save',
+//            't' => 'credit_details',
+//            'f' => Array
+//                (
+//                    'cc_number' => '9102983312111222',
+//                    'cc_name' => 'Amit Gandhi',
+//                    'cc_exp_date' => '01/01/2012',
+//                ),
+//
+//        )
+//
+//);
+
 $data = Array
 (
-    'request' => Array
+	'request' => Array
         (
-            'm' => 'save',
+            'm' => 'read',
             't' => 'credit_details',
             'f' => Array
                 (
-                    'cc_number' => '9102983312111222',
-                    'cc_name' => 'Amit Gandhi',
-                    'cc_exp_date' => '01/01/2012',
+                    '0' => 'cc_number',
+                    '1' => 'cc_name',
+                    '2' => 'cc_exp_date',
                 ),
 
-        )
+            'w' => Array
+                (
+                    'id' => '67',
+                    'key' => '4f4c7248-49c4-494a-9a02-5beec0a81e44',
+                ),
 
+        ),
 );
+
 
 $data_json = base64_encode(serialize($data));
 //$data_json = serialize($data);

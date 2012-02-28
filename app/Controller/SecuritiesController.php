@@ -136,22 +136,22 @@ class SecuritiesController extends AppController {
 
 	private function __read() {
 		$fields = implode(",", $this->data['f']);
-
+		//pr($this->data);
+		
 		// check if where clause is an array, if yes extract primary key field
-		if(!isset($this->data['w'][$this->app_model->primaryKey]) || !isset($this->data['w']['key_id'])) {
+		if(!isset($this->data['w'][$this->app_model->primaryKey]) || !isset($this->data['w']['key'])) {
 			$this->err = 'Insufficient Data.';
 			return false;
 		}
 		
 		// app_id 
 		$id = $this->data['w'][$this->app_model->primaryKey];
-		$key_id = $this->data['w']['key_id'];
+		$key_id = $this->data['w']['key'];
 
 
 		// find key for this id 
 		$key_data = $this->key_model->read('key',$key_id);
 		$passkey = $key_data[$this->key_model->name]['key'];
-
 		$t_data = array();
 		$app_data = $this->app_model->read($fields,$id);
 		foreach ($app_data[$this->app_model->name] as $key => $val) {
@@ -271,19 +271,19 @@ class SecuritiesController extends AppController {
 
 	private function __handleError($err='',$errno=0)
 	{
-		echo "ERR >> ".$err. " errno >> ".$errno;
+		//echo "ERR >> ".$err. " errno >> ".$errno;
 		if (empty($err)) {
 			$err = $this->err;
 		}
 		if (empty($errno)) {
-			$err = $this->errno;
+			$errno = $this->errno;
 		}
 
 		/// simple error handling right now.
 		$arr = array($errno,$err);
-		echo "inside ";
-		pr($arr);
-		//$this->return_data = $arr;//base64_encode(serialize($arr));
+		//echo "inside ";
+		//pr($arr);
+		$this->return_data = $arr;//base64_encode(serialize($arr));
 
 	}
 
@@ -306,8 +306,8 @@ class SecuritiesController extends AppController {
 
 	function decode ($str='') {
 		if(empty($str)) {
-			echo "<br>empty<br>";
-			$str = "YTozOntzOjk6ImNjX251bWJlciI7czoyNDoiOTFYWC0tLVhYWC0tWFhYWC0tLVgyMzEyIjtzOjc6ImNjX25hbWUiO3M6ODoiSm9obiBEb2UiO3M6MTE6ImNjX2V4cF9kYXRlIjtzOjEwOiIwMS8wMS8yMDAxIjt9";
+			//echo "<br>empty<br>";
+			$str = "YTozOntzOjk6ImNjX251bWJlciI7czoyNDoiOTFYWC0tLVhYWC0tWFhYWC0tLVgxMjIyIjtzOjc6ImNjX25hbWUiO3M6MTE6IkFtaXQgR2FuZGhpIjtzOjExOiJjY19leHBfZGF0ZSI7czoxMDoiMDEvMDEvMjAxMiI7fQ==";
 		}
 		$stra = base64_decode($str);
 		$arr = unserialize($stra);

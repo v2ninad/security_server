@@ -71,7 +71,7 @@ class DATABASE_CONFIG {
 		//'encoding' => 'utf8',
 	);
 
-	// key db - used for key management of security purpose of data
+	// key db - used for key management for security purpose of data
 	public $key_db = array(
 		'datasource' => 'Database/Mysql',
 		'persistent' => false,
